@@ -1,0 +1,14 @@
+[Unit]
+Description=Refresh Gran Turismo web session
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/gt-session-worker
+EnvironmentFile=/etc/gtstats/gt-session-worker.env
+ExecStart=/usr/bin/env pnpm run gt-session-refresh
+User=admin
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+{
+  "name": "gt-session-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "gt-session-login": "node ./src/gtSessionLogin.mjs",
+    "gt-session-refresh": "node ./src/gtSessionRefresh.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.6.1",
+    "playwright": "^1.59.1"
+  }
+}
