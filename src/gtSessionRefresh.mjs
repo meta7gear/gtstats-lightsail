@@ -1,8 +1,11 @@
 import {
   extractSessionCookie,
   getBrowserConfig,
+  getSessionCookieValue,
   getGranTurismoConfig,
   getSessionPaths,
+  getStoredSessionSnapshot,
+  injectSessionCookie,
   launchPersistentBrowser,
   loadEnv,
   maskSecret,
@@ -37,6 +40,23 @@ const main = async () => {
     const page = context.pages()[0] || await context.newPage();
     await page.goto(signinUrl, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
+
+    const storedSession = await getStoredSessionSnapshot();
+    const currentSessionId = await getSessionCookieValue(context, { baseUrl, sessionCookieName });
+
+    if (storedSession?.sessionId && storedSession.sessionId !== currentSessionId) {
+      console.log(
+        `Updating browser profile ${sessionCookieName} from Firestore session source=${storedSession.source}`,
+      );
+      await injectSessionCookie({
+        context,
+        baseUrl,
+        sessionCookieName,
+        sessionId: storedSession.sessionId,
+      });
+      await page.goto(signinUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {});
+      await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
+    }
 
     const sessionId = await extractSessionCookie(context, { baseUrl, sessionCookieName });
     const tokenData = await requestGranTurismoToken(sessionId, tokenUrl, sessionCookieName);

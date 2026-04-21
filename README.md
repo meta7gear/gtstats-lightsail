@@ -9,6 +9,7 @@ to Firestore for the main site to consume.
 - opens a persistent browser profile
 - completes the Sony / Gran Turismo login flow once
 - refreshes the GT session on a schedule
+- syncs newer Firestore session values back into the browser profile during refresh
 - writes the latest session to Firestore
 
 ## Environment
@@ -54,6 +55,12 @@ One-time login:
 
 ```bash
 pnpm run gt-session-login
+```
+
+Inject a trusted `JSESSIONID` directly into the worker profile:
+
+```bash
+pnpm run gt-session-inject-cookie "1776728351_6C534ACB8B4636F0E000235C2138ACD8838B6B90FB57E4D9.worker21"
 ```
 
 Scheduled refresh:

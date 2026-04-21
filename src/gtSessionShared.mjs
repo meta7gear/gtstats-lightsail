@@ -95,6 +95,11 @@ export const getSessionStoreConfig = () => {
   };
 };
 
+const shouldUseFirestoreSessionStore = () => {
+  const { mode } = getSessionStoreConfig();
+  return mode === 'firestore' || mode === 'both' || (mode === 'auto' && hasFirebaseAdminConfig());
+};
+
 export const getGranTurismoConfig = () => {
   const region = process.env.GRAN_TURISMO_REGION || DEFAULT_REGION;
   const baseUrl = process.env.GRAN_TURISMO_BASE_URL || `https://www.gran-turismo.com/${region}/gt7`;
@@ -208,6 +213,32 @@ const getAdminDb = () => {
   return getFirestore();
 };
 
+export const getStoredSessionSnapshot = async () => {
+  if (!shouldUseFirestoreSessionStore()) {
+    return null;
+  }
+
+  const { collectionName, documentId } = getSessionStoreConfig();
+  const snapshot = await getAdminDb().collection(collectionName).doc(documentId).get();
+  if (!snapshot.exists) {
+    return null;
+  }
+
+  const data = snapshot.data() || {};
+  const sessionId = typeof data.sessionId === 'string' ? data.sessionId.trim() : '';
+  if (!sessionId) {
+    return null;
+  }
+
+  return {
+    sessionId,
+    source: typeof data.source === 'string' ? data.source : 'firestore',
+    updatedAt: typeof data.updatedAt?.toDate === 'function'
+      ? data.updatedAt.toDate().toISOString()
+      : (typeof data.updatedAt === 'string' ? data.updatedAt : null),
+  };
+};
+
 export const saveSessionSnapshot = async ({
   sessionFilePath,
   sessionId,
@@ -278,6 +309,12 @@ export const extractSessionCookie = async (context, { baseUrl, sessionCookieName
   return sessionCookie.value;
 };
 
+export const getSessionCookieValue = async (context, { baseUrl, sessionCookieName }) => {
+  const cookies = await context.cookies(baseUrl);
+  const sessionCookie = cookies.find((cookie) => cookie.name === sessionCookieName);
+  return sessionCookie?.value?.trim() || null;
+};
+
 export const requestGranTurismoToken = async (
   sessionId,
   tokenUrl,
@@ -313,4 +350,34 @@ export const requestGranTurismoToken = async (
     accessToken,
     expiresIn: parsedBody?.expires_in ?? null,
   };
+};
+
+export const injectSessionCookie = async ({
+  context,
+  baseUrl,
+  sessionCookieName,
+  sessionId,
+}) => {
+  const expiresAtSeconds = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
+
+  await context.addCookies([
+    {
+      url: baseUrl,
+      name: sessionCookieName,
+      value: sessionId,
+      path: '/',
+      httpOnly: true,
+      secure: true,
+      expires: expiresAtSeconds,
+    },
+  ]);
+
+  const cookies = await context.cookies(baseUrl);
+  const storedCookie = cookies.find((cookie) => cookie.name === sessionCookieName);
+
+  if (storedCookie?.value !== sessionId) {
+    throw new Error(`Failed to store ${sessionCookieName} in the browser profile.`);
+  }
+
+  return storedCookie;
 };

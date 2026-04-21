@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "gt-session-inject-cookie": "node ./src/gtSessionInjectCookie.mjs",
     "gt-session-login": "node ./src/gtSessionLogin.mjs",
     "gt-session-refresh": "node ./src/gtSessionRefresh.mjs"
   },
