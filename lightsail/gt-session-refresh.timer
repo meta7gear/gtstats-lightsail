@@ -3,7 +3,7 @@ Description=Run Gran Turismo session refresh every 15 minutes
 
 [Timer]
 OnBootSec=2min
-OnUnitActiveSec=15min
+OnUnitActiveSec=10min
 Unit=gt-session-refresh.service
 Persistent=true
 

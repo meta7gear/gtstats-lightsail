@@ -17,6 +17,20 @@ const sleep = (ms) => new Promise((resolve) => {
   setTimeout(resolve, ms);
 });
 
+const openSigninPage = async (page, signinUrl) => {
+  try {
+    await page.goto(signinUrl, { waitUntil: 'commit', timeout: 30_000 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`Initial navigation warning: ${message}`);
+  }
+
+  await page.waitForLoadState('domcontentloaded', { timeout: 30_000 }).catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`DOMContentLoaded wait warning: ${message}`);
+  });
+};
+
 const main = async () => {
   loadEnv();
 
@@ -43,7 +57,17 @@ const main = async () => {
 
   try {
     const page = context.pages()[0] || await context.newPage();
-    await page.goto(signinUrl, { waitUntil: 'domcontentloaded' });
+    page.on('close', () => {
+      console.warn('Login page was closed.');
+    });
+    page.on('crash', () => {
+      console.warn('Login page crashed.');
+    });
+    context.on('close', () => {
+      console.warn('Browser context was closed.');
+    });
+
+    await openSigninPage(page, signinUrl);
 
     console.log('');
     console.log('Complete the Sony / Gran Turismo sign-in flow in the opened browser window.');
